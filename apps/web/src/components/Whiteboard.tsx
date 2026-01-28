@@ -32,13 +32,13 @@ const Whiteboard: React.FC = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    canvas.width = window.innerWidth * 2;
-    canvas.height = window.innerHeight * 2;
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height = `${window.innerHeight}px`;
+    // canvas.width = 800;
+    // canvas.height = 600;
+    // canvas.style.width = `${800}px`;
+    // canvas.style.height = `${600}px`;
 
     const context = canvas.getContext('2d')!;
-    context.scale(2, 2);
+    // context.scale(2, 2);
     context.lineCap = 'round';
     context.lineWidth = size;
     context.strokeStyle = color;
@@ -50,7 +50,7 @@ const Whiteboard: React.FC = () => {
     // contextRef.current!.beginPath();
     // contextRef.current!.moveTo(offsetX, offsetY);
     lastPointRef.current = { x: offsetX, y: offsetY };
-    
+
     isDrawingRef.current = true;
   };
 
@@ -58,7 +58,7 @@ const Whiteboard: React.FC = () => {
     // contextRef.current!.closePath();
     // isDrawingRef.current = false;
     isDrawingRef.current = false;
-  lastPointRef.current = null;
+    lastPointRef.current = null;
   };
 
   const draw = ({ nativeEvent }: React.MouseEvent) => {
@@ -77,18 +77,18 @@ const Whiteboard: React.FC = () => {
 
   useEffect(() => {
     if (ws) {
-    ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log("from client",data.type);
-  
-    
-      renderLine(
-        data.from,
-        data.to,
-        data.color,
-        data.size
-      );
-          
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log("from client", data.type);
+
+
+        renderLine(
+          data.from,
+          data.to,
+          data.color,
+          data.size
+        );
+
       };
     }
   }, [ws]);
@@ -107,7 +107,7 @@ const Whiteboard: React.FC = () => {
     ctx.lineTo(to.x, to.y);
     ctx.stroke();
   };
-  
+
 
   const changeColor = (newColor: string) => {
     contextRef.current!.strokeStyle = newColor;
@@ -129,24 +129,30 @@ const Whiteboard: React.FC = () => {
 
   return (
     <div>
+
+      <canvas
+        ref={canvasRef}
+        // width={window.innerWidth}
+        // height={window.innerHeight}
+        width={800}
+        height={600}
+        onMouseDown={startDrawing}
+        onMouseUp={finishDrawing}
+        onMouseMove={draw}
+        style={{ border: '1px solid black', display: 'block', background: "white" }}
+        className='rounded-xl'
+      />
+
       <div style={{ marginBottom: '10px' }}>
         <button onClick={() => changeColor('black')} style={{ backgroundColor: 'black', color: 'white', marginRight: '5px' }}>Black</button>
         <button onClick={() => changeColor('red')} style={{ backgroundColor: 'red', color: 'white', marginRight: '5px' }}>Red</button>
         <button onClick={() => changeColor('green')} style={{ backgroundColor: 'green', color: 'white', marginRight: '5px' }}>Green</button>
         <button onClick={() => changeColor('blue')} style={{ backgroundColor: 'blue', color: 'white', marginRight: '5px' }}>Blue</button>
         <button onClick={() => changeColor('white')} style={{ backgroundColor: 'white', color: 'black', marginRight: '5px' }}>Eraser</button>
-        <input type="range" name="size" value = {size} max={10}  onChange={e => changeSize(Number(e.target.value))}/>
+        <input type="range" name="size" value={size} max={10} onChange={e => changeSize(Number(e.target.value))} />
         <button onClick={clearCanvas}>Clear Canvas</button>
       </div>
-      <canvas
-        ref={canvasRef}
-        width={window.innerWidth}
-        height={window.innerHeight}
-        onMouseDown={startDrawing}
-        onMouseUp={finishDrawing}
-        onMouseMove={draw}
-        style={{ border: '1px solid black', display: 'block' }}
-      />
+
     </div>
   );
 };

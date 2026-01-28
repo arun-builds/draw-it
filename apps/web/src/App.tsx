@@ -1,16 +1,18 @@
 
-import Whiteboard from "./components/Whiteboard"
+import { BrowserRouter, Route, Routes } from "react-router"
+import { Play } from "@/pages/Play"
 
 function App() {
-  
+
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
-      <div className="w-full h-ful">
-        <Whiteboard />
-        {/* <Button onClick={() => ws?.send("Hello from client")}>Send Message</Button> */}
-      </div>
-    </div>
+
+    <BrowserRouter>
+      <Routes>
+        <Route path="/play" element={<Play />} />
+      </Routes>
+    </BrowserRouter>
+
   )
 }
 
