@@ -1,26 +1,9 @@
-
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { useSocketContext } from '@/contexts/SocketContext';
+import type { DrawPayload } from '@/contexts/SocketContext';
 
 const Whiteboard: React.FC = () => {
-
-  const [ws, setWs] = useState<WebSocket | null>(null);
-
-  useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080");
-    ws.onopen = () => {
-      console.log("Connected to server");
-    };
-    ws.onmessage = (event) => {
-      console.log("Message from server", event.data);
-    };
-    ws.onclose = () => {
-      console.log("Disconnected from server");
-    };
-    ws.onerror = (event) => {
-      console.log("Error from server", event);
-    };
-    setWs(ws);
-  }, []);
+  const { sendDraw, onDraw, userId } = useSocketContext();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -30,33 +13,50 @@ const Whiteboard: React.FC = () => {
   const [color, setColor] = useState('black');
   const [size, setSize] = useState(5);
 
+  const renderLine = useCallback((
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    strokeColor: string,
+    strokeSize: number
+  ) => {
+    const ctx = contextRef.current;
+    if (!ctx) return;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeSize;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+  }, []);
+
+  // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current!;
-    // canvas.width = 800;
-    // canvas.height = 600;
-    // canvas.style.width = `${800}px`;
-    // canvas.style.height = `${600}px`;
-
     const context = canvas.getContext('2d')!;
-    // context.scale(2, 2);
     context.lineCap = 'round';
     context.lineWidth = size;
     context.strokeStyle = color;
     contextRef.current = context;
   }, []);
 
+  // Subscribe to incoming draw events from other users
+  useEffect(() => {
+    const unsubscribe = onDraw((data: DrawPayload, fromUserId: string) => {
+      // Only render if it's from another user
+      if (fromUserId !== userId) {
+        renderLine(data.from, data.to, data.color, data.size);
+      }
+    });
+    return unsubscribe;
+  }, [onDraw, userId, renderLine]);
+
   const startDrawing = ({ nativeEvent }: React.MouseEvent) => {
     const { offsetX, offsetY } = nativeEvent;
-    // contextRef.current!.beginPath();
-    // contextRef.current!.moveTo(offsetX, offsetY);
     lastPointRef.current = { x: offsetX, y: offsetY };
-
     isDrawingRef.current = true;
   };
 
   const finishDrawing = () => {
-    // contextRef.current!.closePath();
-    // isDrawingRef.current = false;
     isDrawingRef.current = false;
     lastPointRef.current = null;
   };
@@ -66,48 +66,15 @@ const Whiteboard: React.FC = () => {
     const { offsetX, offsetY } = nativeEvent;
     const from = lastPointRef.current!;
     const to = { x: offsetX, y: offsetY };
+    
+    // Render locally
     renderLine(from, to, color, size);
-    ws?.send(JSON.stringify({ from, to, color, size }));
+    
+    // Send to other users via socket
+    sendDraw({ from, to, color, size });
+    
     lastPointRef.current = to;
-
-    // console.log(offsetX, offsetY);
-    // contextRef.current!.lineTo(offsetX, offsetY);
-    // contextRef.current!.stroke();
   };
-
-  useEffect(() => {
-    if (ws) {
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log("from client", data.type);
-
-
-        renderLine(
-          data.from,
-          data.to,
-          data.color,
-          data.size
-        );
-
-      };
-    }
-  }, [ws]);
-
-  const renderLine = (
-    from: { x: number; y: number },
-    to: { x: number; y: number },
-    color: string,
-    size: number
-  ) => {
-    const ctx = contextRef.current!;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = size;
-    ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
-    ctx.stroke();
-  };
-
 
   const changeColor = (newColor: string) => {
     contextRef.current!.strokeStyle = newColor;
@@ -127,32 +94,84 @@ const Whiteboard: React.FC = () => {
     }
   };
 
-  return (
-    <div>
+  const colors = [
+    '#000000', '#FFFFFF', '#9CA3AF',
+    '#EF4444', '#F97316', '#EAB308', 
+    '#22C55E', '#3B82F6', '#8B5CF6',
+  ];
 
+  return (
+    <div className="flex flex-col">
+      {/* Canvas */}
       <canvas
         ref={canvasRef}
-        // width={window.innerWidth}
-        // height={window.innerHeight}
-        width={800}
-        height={600}
+        width={720}
+        height={480}
         onMouseDown={startDrawing}
         onMouseUp={finishDrawing}
+        onMouseLeave={finishDrawing}
         onMouseMove={draw}
-        style={{ border: '1px solid black', display: 'block', background: "white" }}
-        className='rounded-xl'
+        className="bg-white cursor-crosshair rounded-t-lg"
       />
 
-      <div style={{ marginBottom: '10px' }}>
-        <button onClick={() => changeColor('black')} style={{ backgroundColor: 'black', color: 'white', marginRight: '5px' }}>Black</button>
-        <button onClick={() => changeColor('red')} style={{ backgroundColor: 'red', color: 'white', marginRight: '5px' }}>Red</button>
-        <button onClick={() => changeColor('green')} style={{ backgroundColor: 'green', color: 'white', marginRight: '5px' }}>Green</button>
-        <button onClick={() => changeColor('blue')} style={{ backgroundColor: 'blue', color: 'white', marginRight: '5px' }}>Blue</button>
-        <button onClick={() => changeColor('white')} style={{ backgroundColor: 'white', color: 'black', marginRight: '5px' }}>Eraser</button>
-        <input type="range" name="size" value={size} max={10} onChange={e => changeSize(Number(e.target.value))} />
-        <button onClick={clearCanvas}>Clear Canvas</button>
-      </div>
+      {/* Toolbar */}
+      <div className="bg-zinc-800 border border-zinc-700 border-t-0 rounded-b-lg px-4 py-3 flex items-center gap-6">
+        {/* Colors */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-400 font-medium">Color</span>
+          <div className="flex gap-1">
+            {colors.map((c) => (
+              <button
+                key={c}
+                onClick={() => changeColor(c)}
+                className={`w-7 h-7 rounded transition-all ${
+                  color === c 
+                    ? 'ring-2 ring-offset-2 ring-offset-zinc-800 ring-emerald-500 scale-110' 
+                    : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: c, border: c === '#FFFFFF' ? '1px solid #52525b' : 'none' }}
+              />
+            ))}
+          </div>
+        </div>
 
+        {/* Divider */}
+        <div className="w-px h-6 bg-zinc-700"></div>
+
+        {/* Size */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-400 font-medium">Size</span>
+          <div className="flex gap-1">
+            {[2, 5, 10, 18].map((s) => (
+              <button
+                key={s}
+                onClick={() => changeSize(s)}
+                className={`w-8 h-8 rounded flex items-center justify-center transition-all ${
+                  size === s 
+                    ? 'bg-emerald-600' 
+                    : 'bg-zinc-700 hover:bg-zinc-600'
+                }`}
+              >
+                <div 
+                  className="rounded-full bg-white"
+                  style={{ width: Math.min(s, 14), height: Math.min(s, 14) }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-zinc-700"></div>
+
+        {/* Clear */}
+        <button
+          onClick={clearCanvas}
+          className="bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
+        >
+          Clear
+        </button>
+      </div>
     </div>
   );
 };

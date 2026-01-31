@@ -50,7 +50,7 @@ Bun.serve<WebSocketData>({
         }
 
         case "join_room": {
-          // Leave current room if in one
+         
           if (ws.data.roomId) {
             ws.unsubscribe(`room:${ws.data.roomId}`);
             ws.publish(`room:${ws.data.roomId}`, JSON.stringify({ type: "user_left", userId }));
@@ -82,21 +82,20 @@ Bun.serve<WebSocketData>({
           break;
         }
 
-        case "broadcast": {
+        case "draw": {
           if (!ws.data.roomId) {
             ws.send(JSON.stringify({ type: "error", message: "Not in a room" }));
             break;
           }
           // Broadcast message to all users in the room (including sender via publish)
           const broadcastMsg = JSON.stringify({
-            type: "broadcast",
+            type: "draw",
             userId,
             roomId: ws.data.roomId,
             payload: data.payload
           });
           ws.publish(`room:${ws.data.roomId}`, broadcastMsg);
-          // Also send to self since publish doesn't send to the sender
-          ws.send(broadcastMsg);
+          
           break;
         }
 
@@ -109,7 +108,6 @@ Bun.serve<WebSocketData>({
 
         default:
           ws.send(JSON.stringify({ type: "error", message: "Invalid message type" }));
-          break;
       }
     },
 
