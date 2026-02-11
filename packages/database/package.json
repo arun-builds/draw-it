@@ -13,8 +13,8 @@
     "format": "prisma format",
     "generate": "prisma generate",
     "lint": "eslint . --max-warnings 0",
-    "prebuild": "npm run generate",
-    "predev": "npm run generate",
+    "prebuild": "pnpm run generate",
+    "predev": "pnpm run generate",
     "studio": "prisma studio"
   },
   "dependencies": {
@@ -24,8 +24,8 @@
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@types/pg": "^8.16.0",
     "eslint": "^8.57.0",
     "prisma": "latest",

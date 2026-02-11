@@ -3,14 +3,20 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "scripts": {
+    "dev": "tsx watch index.ts"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0"
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^3.3.0",
-    "@repo/redis": "*"
+    "@repo/redis": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

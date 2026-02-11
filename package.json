@@ -24,14 +24,10 @@
   "engines": {
     "node": ">=18"
   },
-  "name": "with-prisma",
+  "name": "draw-it",
   "dependencies": {
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "latest"
   },
-  "packageManager": "bun@1.2.19",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "packageManager": "pnpm@9.15.4"
 }
